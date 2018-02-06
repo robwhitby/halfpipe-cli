@@ -1,6 +1,12 @@
 package model
 
-import "fmt"
+import (
+	"fmt"
+)
+
+type Documented interface {
+	DocumentationPath() string
+}
 
 type missingField struct {
 	Name string
@@ -8,6 +14,10 @@ type missingField struct {
 
 func (e *missingField) Error() string {
 	return fmt.Sprintf("Missing field: %s", e.Name)
+}
+
+func (e *missingField) DocumentationPath() string {
+	return "/docs/manifest/fields#" + e.Name
 }
 
 func NewMissingField(name string) *missingField {
@@ -21,6 +31,10 @@ type invalidField struct {
 
 func (e *invalidField) Error() string {
 	return fmt.Sprintf("Invalid value for '%s': %s", e.Name, e.Reason)
+}
+
+func (e *invalidField) DocumentationPath() string {
+	return "/docs/manifest/fields#" + e.Name
 }
 
 func NewInvalidField(name string, reason string) *invalidField {

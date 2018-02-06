@@ -7,6 +7,8 @@ import (
 
 	"syscall"
 
+	"strings"
+
 	"github.com/robwhitby/halfpipe-cli/linter"
 	"github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
@@ -39,9 +41,19 @@ func main() {
 }
 
 func exitWithErrors(errs ...error) {
-	fmt.Println("Found some problems:")
-	for _, e := range errs {
-		fmt.Printf("- %+v\n", e)
-	}
+	fmt.Println(errorReport(errs...))
 	syscall.Exit(-1)
+}
+
+func errorReport(errs ...error) string {
+	var lines []string
+	lines = append(lines, "Found some problems:")
+	for _, err := range errs {
+		lines = append(lines, "- "+err.Error())
+		if docs, ok := err.(model.Documented); ok {
+			lines = append(lines, fmt.Sprintf("  rtfm: http://docs.halfpipe.io%s", docs.DocumentationPath()))
+		}
+
+	}
+	return strings.Join(lines, "\n")
 }

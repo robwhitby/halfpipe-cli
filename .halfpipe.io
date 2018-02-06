@@ -1,6 +1,6 @@
-team: engineering-enablement
+teamx: engineering-enablement
 repo:
-  uri: https://....
+  uri: https://zzz
   private_key: asdf
 tasks:
 - name: run
