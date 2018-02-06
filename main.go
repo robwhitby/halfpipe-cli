@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"syscall"
 
 	"os"
+
+	"syscall"
 
 	"github.com/robwhitby/halfpipe-cli/linter"
 	"github.com/robwhitby/halfpipe-cli/model"
@@ -16,36 +17,31 @@ func main() {
 	fileSystem := &afero.Afero{Fs: afero.NewOsFs()}
 
 	bytes, err := fileSystem.ReadFile(os.Getenv("HOME") + "/go/src/github.com/robwhitby/halfpipe-cli/.halfpipe.io")
-	exitWithError(err)
+	if err != nil {
+		exitWithErrors(err)
+	}
 
 	manifestYaml := string(bytes)
 
 	//parse
-	man, parseFailures := model.Parse(manifestYaml)
-	if !parseFailures.IsEmpty() {
-		fmt.Println("Failed to parse manifest:")
-		exitWithError(parseFailures)
+	man, parseErrors := model.Parse(manifestYaml)
+	if len(parseErrors) > 0 {
+		exitWithErrors(parseErrors...)
 	}
 
 	//lint
-	lintFailures := linter.Lint(man)
-
-	if len(lintFailures) > 0 {
-		fmt.Printf("Found %v issues:\n", len(lintFailures))
-		for _, f := range lintFailures {
-			fmt.Printf("- %s\n", f.Message)
-		}
+	if lintErrors := linter.Lint(man); len(lintErrors) > 0 {
+		exitWithErrors(lintErrors...)
 	}
 
-	fmt.Println("---------------------------------")
-	fmt.Println("Manifest object:")
-	fmt.Printf("%+v\n", man)
+	fmt.Println("Good job")
 
 }
 
-func exitWithError(err interface{}) {
-	if err != nil {
-		fmt.Println(err)
-		syscall.Exit(-1)
+func exitWithErrors(errs ...error) {
+	fmt.Println("Found some problems:")
+	for _, e := range errs {
+		fmt.Printf("- %+v\n", e)
 	}
+	syscall.Exit(-1)
 }

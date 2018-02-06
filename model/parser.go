@@ -2,25 +2,28 @@ package model
 
 import (
 	"encoding/json"
+
 	"fmt"
 
 	"github.com/ghodss/yaml"
 )
 
-func Parse(manifestYaml string) (*Manifest, *Failures) {
-	man := new(Manifest)
-	failures := new(Failures)
+func Parse(manifestYaml string) (man *Manifest, errs []error) {
+	addError := func(e error) {
+		errs = append(errs, e)
+	}
+
 	if err := yaml.Unmarshal([]byte(manifestYaml), &man); err != nil {
-		failures.Messages = append(failures.Messages, err.Error())
-		return nil, failures
+		addError(err)
+		return
 	}
 
 	var rawTasks struct {
 		Tasks []json.RawMessage
 	}
 	if err := yaml.Unmarshal([]byte(manifestYaml), &rawTasks); err != nil {
-		failures.Messages = append(failures.Messages, err.Error())
-		return nil, failures
+		addError(err)
+		return
 	}
 
 	for i, rawTask := range rawTasks.Tasks {
@@ -36,9 +39,9 @@ func Parse(manifestYaml string) (*Manifest, *Failures) {
 		if done {
 			continue
 		}
-		failures.Messages = append(failures.Messages, fmt.Sprintf("task %v is invalid", i+1))
+		addError(NewInvalidField(fmt.Sprintf("task %v", i+1), "unknown task definition"))
 	}
-	return man, failures
+	return
 }
 
 func unmarshalTask(t task, taskName string, raw json.RawMessage) (error, bool) {

@@ -16,8 +16,8 @@ func TestLint(t *testing.T) {
 
 	failures := Lint(man)
 	g.Expect(len(failures)).To(Equal(2))
-	g.Expect(failures).To(ContainElement(missingField("repo.uri")))
-	g.Expect(failures).To(ContainElement(missingField("tasks")))
+	g.Expect(failures).To(ContainElement(model.NewMissingField("repo.uri")))
+	g.Expect(failures).To(ContainElement(model.NewMissingField("tasks")))
 }
 
 func TestRepoUri(t *testing.T) {
@@ -28,5 +28,5 @@ func TestRepoUri(t *testing.T) {
 	}
 
 	failures := Lint(man)
-	g.Expect(failures).To(ContainElement(invalidValue("repo.uri", "must contain 'github'")))
+	g.Expect(failures).To(ContainElement(model.NewInvalidField("repo.uri", "must contain 'github'")))
 }

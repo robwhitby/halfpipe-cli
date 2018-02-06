@@ -3,6 +3,8 @@ package model
 import (
 	"testing"
 
+	"fmt"
+
 	. "github.com/onsi/gomega"
 )
 
@@ -17,27 +19,27 @@ func TestValidYaml(t *testing.T) {
 func TestInvalidYaml(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := Parse("team : { foo")
-	g.Expect(err).To(HaveOccurred())
+	_, errs := Parse("team : { foo")
+	g.Expect(errs).To(HaveLen(1))
 }
 
 func TestRepo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	man, err := Parse("repo: { uri: myuri, private_key: mypk }")
+	man, errs := Parse("repo: { uri: myuri, private_key: mypk }")
 	expected := &Manifest{
 		Repo: Repo{
 			Uri:        "myuri",
 			PrivateKey: "mypk",
 		},
 	}
-	g.Expect(man, err).To(Equal(expected))
+	g.Expect(man, errs).To(Equal(expected))
 }
 
 func TestRunTask(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	man, err := Parse("tasks: [{ name: run, image: alpine, script: build.sh, vars: { FOO: Foo, BAR: Bar } }]")
+	man, errs := Parse("tasks: [{ name: run, image: alpine, script: build.sh, vars: { FOO: Foo, BAR: Bar } }]")
 	expected := &Manifest{
 		Tasks: []task{
 			&Run{
@@ -51,13 +53,13 @@ func TestRunTask(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(man, err).To(Equal(expected))
+	g.Expect(man, errs).To(Equal(expected))
 }
 
 func TestMultipleTasks(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	man, err := Parse("tasks: [{ name: run, image: img, script: build.sh }, { name: docker-push, username: bob }, { name: run }, { name: deploy-cf, org: foo }]")
+	man, errs := Parse("tasks: [{ name: run, image: img, script: build.sh }, { name: docker-push, username: bob }, { name: run }, { name: deploy-cf, org: foo }]")
 	expected := &Manifest{
 		Tasks: []task{
 			&Run{
@@ -78,19 +80,23 @@ func TestMultipleTasks(t *testing.T) {
 			},
 		},
 	}
-	g.Expect(man, err).To(Equal(expected))
+	g.Expect(man, errs).To(Equal(expected))
 }
 
 func TestInvalidTask(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := Parse("tasks: [{ name: unknown, foo: bar }]")
-	g.Expect(err).To(HaveOccurred())
+	_, errs := Parse("tasks: [{ name: unknown, foo: bar }]")
+	g.Expect(errs).To(HaveLen(1))
 }
 
 func TestReportMultipleInvalidTasks(t *testing.T) {
 	g := NewGomegaWithT(t)
 
-	_, err := Parse("tasks: [{ name: unknown, foo: bar }, { name: run, image: alpine, script: build.sh }, { notname: foo }]")
-	g.Expect(err.Messages).To(HaveLen(2))
+	_, errs := Parse("tasks: [{ name: unknown, foo: bar }, { name: run, image: alpine, script: build.sh }, { notname: foo }]")
+	g.Expect(errs).To(HaveLen(2))
+	g.Expect(errs[0]).To(BeAssignableToTypeOf(&invalidField{})) //is this right way?
+	g.Expect(errs[1]).To(BeAssignableToTypeOf(&invalidField{}))
+
+	fmt.Println(errs)
 }
