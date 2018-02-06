@@ -38,9 +38,12 @@ func Parse(manifestYaml string) (*Manifest, *Failures) {
 		done := false
 		for taskName, taskFunc := range allTasks {
 			newTask := taskFunc()
-			if _, ok := unmarshalTask(newTask, taskName, rawTask); ok {
+			if err, ok := unmarshalTask(newTask, taskName, rawTask); ok {
 				man.Tasks = append(man.Tasks, newTask)
 				done = true
+				continue
+			} else if err != nil {
+				failures.Messages = append(failures.Messages, fmt.Sprintf("task %v is invalid: %s", i+1, err.Error()))
 				continue
 			}
 		}
