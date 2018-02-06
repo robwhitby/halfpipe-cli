@@ -4,50 +4,33 @@ import (
 	"fmt"
 	"syscall"
 
-	"github.com/robwhitby/halfpipe-cli/linter"
-	"github.com/robwhitby/halfpipe-cli/manifest"
-	"github.com/robwhitby/halfpipe-cli/project"
-	"github.com/robwhitby/halfpipe-cli/render"
+	"os"
+
+	"github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
 )
 
 func main() {
 
-	//dependencies
 	fileSystem := &afero.Afero{Fs: afero.NewOsFs()}
-	config, err := project.NewConfig()
-	exitOnError(err)
 
-	//define linters
-	linters := [3]linter.Linter{
-		&linter.RequiredFieldsLinter{},
-		&linter.RepoLinter{},
-		&linter.RequiredFilesLinter{Fs: fileSystem, RepoRoot: config.RepoRoot},
+	bytes, err := fileSystem.ReadFile(os.Getenv("HOME") + "/go/src/github.com/robwhitby/halfpipe-cli/.halfpipe.io")
+	exitWithError(err)
+
+	manifestYaml := string(bytes)
+	man, failures := model.Parse(manifestYaml)
+
+	if !failures.IsEmpty() {
+		fmt.Println("Failed to parse manifest:")
+		exitWithError(failures)
 	}
 
-	//read manifest file
-	manifest, err := manifest.NewManifestReader(fileSystem).ParseManifest(config.RepoRoot)
-	exitOnError(err)
+	fmt.Println("Manifest object:")
+	fmt.Printf("%+v\n", man)
 
-	// loop through linters
-	hasLintErrors := false
-	for _, linter := range linters {
-		result, err := linter.Lint(manifest)
-		exitOnError(err)
-		hasLintErrors = hasLintErrors || result.HasLintErrors()
-		fmt.Println(result.String())
-	}
-
-	if hasLintErrors {
-		syscall.Exit(-1)
-	}
-
-	//no errors so output concourse pipeline
-	concoursePipeline := render.ConcourseRenderer{}.RenderToString(manifest)
-	fmt.Println(concoursePipeline)
 }
 
-func exitOnError(err interface{}) {
+func exitWithError(err interface{}) {
 	if err != nil {
 		fmt.Println(err)
 		syscall.Exit(-1)

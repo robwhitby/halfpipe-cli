@@ -8,10 +8,10 @@
   revision = "6226ea591a40176dd3ff9cd8eff81ed6ca721a00"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/concourse/atc"
+  name = "github.com/ghodss/yaml"
   packages = ["."]
-  revision = "9f26e54d56740a80094ce031afbeb50d47384125"
+  revision = "0ca9ea5df5451ffdf184b4428c902747c2c11cd7"
+  version = "v1.0.0"
 
 [[projects]]
   branch = "master"
@@ -40,7 +40,6 @@
 [[projects]]
   name = "github.com/onsi/ginkgo"
   packages = [
-    ".",
     "config",
     "internal/codelocation",
     "internal/containernode",
@@ -80,12 +79,6 @@
   ]
   revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
   version = "v1.3.0"
-
-[[projects]]
-  name = "github.com/pkg/errors"
-  packages = ["."]
-  revision = "645ef00459ed84a119197bfb8d8205042c6df63d"
-  version = "v0.8.0"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -154,6 +147,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "289cdbba09e0fc5a24880515197517efe44064f005152c757618bf927f55c07d"
+  inputs-digest = "70a507e3273752d5f3295dbe94bb83eaf3c0f89b689b5169b18f4685634d3b5f"
   solver-name = "gps-cdcl"
   solver-version = 1
