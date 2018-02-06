@@ -6,7 +6,7 @@ import (
 	. "github.com/onsi/gomega"
 )
 
-func TestParseValidYaml(t *testing.T) {
+func TestValidYaml(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	man, err := Parse("team: my team")
@@ -14,14 +14,14 @@ func TestParseValidYaml(t *testing.T) {
 	g.Expect(man, err).To(Equal(expected))
 }
 
-func TestParseInvalidYaml(t *testing.T) {
+func TestInvalidYaml(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	_, err := Parse("team : { foo")
 	g.Expect(err).To(HaveOccurred())
 }
 
-func TestParseRepo(t *testing.T) {
+func TestRepo(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	man, err := Parse("repo: { uri: myuri, private_key: mypk }")
@@ -34,7 +34,7 @@ func TestParseRepo(t *testing.T) {
 	g.Expect(man, err).To(Equal(expected))
 }
 
-func TestParseRunTask(t *testing.T) {
+func TestRunTask(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	man, err := Parse("tasks: [{ name: run, image: alpine, script: build.sh, vars: { FOO: Foo, BAR: Bar } }]")
@@ -54,7 +54,7 @@ func TestParseRunTask(t *testing.T) {
 	g.Expect(man, err).To(Equal(expected))
 }
 
-func TestParseRunMultipleTasks(t *testing.T) {
+func TestMultipleTasks(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	man, err := Parse("tasks: [{ name: run, image: img, script: build.sh }, { name: docker-push, username: bob }, { name: run }, { name: deploy-cf, org: foo }]")
@@ -81,14 +81,14 @@ func TestParseRunMultipleTasks(t *testing.T) {
 	g.Expect(man, err).To(Equal(expected))
 }
 
-func TestParseInvalidTask(t *testing.T) {
+func TestInvalidTask(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	_, err := Parse("tasks: [{ name: unknown, foo: bar }]")
 	g.Expect(err).To(HaveOccurred())
 }
 
-func TestParseReportMultipleInvalidTasks(t *testing.T) {
+func TestReportMultipleInvalidTasks(t *testing.T) {
 	g := NewGomegaWithT(t)
 
 	_, err := Parse("tasks: [{ name: unknown, foo: bar }, { name: run, image: alpine, script: build.sh }, { notname: foo }]")

@@ -1,12 +1,5 @@
 package model
 
-import (
-	"encoding/json"
-	"fmt"
-
-	"github.com/ghodss/yaml"
-)
-
 type Manifest struct {
 	Team  string
 	Repo  Repo
@@ -18,49 +11,53 @@ type Repo struct {
 	PrivateKey string `json:"private_key"`
 }
 
-func Parse(manifestYaml string) (*Manifest, *Failures) {
-	man := new(Manifest)
-	failures := new(Failures)
-	if err := yaml.Unmarshal([]byte(manifestYaml), &man); err != nil {
-		failures.Messages = append(failures.Messages, err.Error())
-		return nil, failures
-	}
-
-	var rawTasks struct {
-		Tasks []json.RawMessage
-	}
-	if err := yaml.Unmarshal([]byte(manifestYaml), &rawTasks); err != nil {
-		failures.Messages = append(failures.Messages, err.Error())
-		return nil, failures
-	}
-
-	for i, rawTask := range rawTasks.Tasks {
-		done := false
-		for taskName, taskFunc := range allTasks {
-			newTask := taskFunc()
-			if err, ok := unmarshalTask(newTask, taskName, rawTask); ok {
-				man.Tasks = append(man.Tasks, newTask)
-				done = true
-				continue
-			} else if err != nil {
-				failures.Messages = append(failures.Messages, fmt.Sprintf("task %v is invalid: %s", i+1, err.Error()))
-				continue
-			}
-		}
-		if done {
-			continue
-		}
-		failures.Messages = append(failures.Messages, fmt.Sprintf("task %v is invalid", i+1))
-	}
-	if failures.IsEmpty() {
-		return man, nil
-	}
-	return man, failures
+type task interface {
+	GetName() string
 }
 
-func unmarshalTask(t task, taskName string, raw json.RawMessage) (error, bool) {
-	if err := json.Unmarshal(raw, t); err != nil {
-		return err, false
-	}
-	return nil, t.GetName() == taskName
+type Run struct {
+	Name     string
+	Script   string
+	Username string
+	Image    string
+	Vars     Vars
+}
+
+func (t *Run) GetName() string {
+	return t.Name
+}
+
+type DockerPush struct {
+	Name     string
+	Username string
+	Password string
+	Repo     string
+	Vars     Vars
+}
+
+func (t *DockerPush) GetName() string {
+	return t.Name
+}
+
+type DeployCF struct {
+	Name     string
+	Api      string
+	Space    string
+	Org      string
+	Username string
+	Password string
+	Manifest string
+	Vars     Vars
+}
+
+func (t *DeployCF) GetName() string {
+	return t.Name
+}
+
+type Vars map[string]string
+
+var allTasks = map[string]func() task{
+	"run":         func() task { return new(Run) },
+	"docker-push": func() task { return new(DockerPush) },
+	"deploy-cf":   func() task { return new(DeployCF) },
 }
