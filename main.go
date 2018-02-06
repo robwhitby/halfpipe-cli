@@ -6,6 +6,7 @@ import (
 
 	"os"
 
+	"github.com/robwhitby/halfpipe-cli/linter"
 	"github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
 )
@@ -18,13 +19,25 @@ func main() {
 	exitWithError(err)
 
 	manifestYaml := string(bytes)
-	man, failures := model.Parse(manifestYaml)
 
-	if !failures.IsEmpty() {
+	//parse
+	man, parseFailures := model.Parse(manifestYaml)
+	if !parseFailures.IsEmpty() {
 		fmt.Println("Failed to parse manifest:")
-		exitWithError(failures)
+		exitWithError(parseFailures)
 	}
 
+	//lint
+	lintFailures := linter.Lint(man)
+
+	if len(lintFailures) > 0 {
+		fmt.Printf("Found %v issues:\n", len(lintFailures))
+		for _, f := range lintFailures {
+			fmt.Printf("- %s\n", f.Message)
+		}
+	}
+
+	fmt.Println("---------------------------------")
 	fmt.Println("Manifest object:")
 	fmt.Printf("%+v\n", man)
 
