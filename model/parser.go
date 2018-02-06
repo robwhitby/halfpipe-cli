@@ -38,9 +38,6 @@ func Parse(manifestYaml string) (*Manifest, *Failures) {
 		}
 		failures.Messages = append(failures.Messages, fmt.Sprintf("task %v is invalid", i+1))
 	}
-	if failures.IsEmpty() {
-		return man, nil
-	}
 	return man, failures
 }
 
