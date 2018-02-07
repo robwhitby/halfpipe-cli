@@ -2,10 +2,10 @@
 
 
 [[projects]]
-  branch = "master"
-  name = "github.com/bmizerany/pat"
-  packages = ["."]
-  revision = "6226ea591a40176dd3ff9cd8eff81ed6ca721a00"
+  name = "github.com/davecgh/go-spew"
+  packages = ["spew"]
+  revision = "346938d642f2ec3594ed81d874461961cd0faa76"
+  version = "v1.1.0"
 
 [[projects]]
   name = "github.com/ghodss/yaml"
@@ -14,71 +14,10 @@
   version = "v1.0.0"
 
 [[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/errwrap"
-  packages = ["."]
-  revision = "7554cd9344cec97297fa6649b055a8c98c2a1e55"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/hashicorp/go-multierror"
-  packages = ["."]
-  revision = "b7773ae218740a7be65057fc60b366a49b538a44"
-
-[[projects]]
-  name = "github.com/jessevdk/go-flags"
-  packages = ["."]
-  revision = "96dc06278ce32a0e9d957d590bb987c81ee66407"
-  version = "v1.3.0"
-
-[[projects]]
-  branch = "master"
-  name = "github.com/mitchellh/mapstructure"
-  packages = ["."]
-  revision = "b4575eea38cca1123ec2dc90c26529b5c5acfcff"
-
-[[projects]]
-  name = "github.com/onsi/ginkgo"
-  packages = [
-    "config",
-    "internal/codelocation",
-    "internal/containernode",
-    "internal/failer",
-    "internal/leafnodes",
-    "internal/remote",
-    "internal/spec",
-    "internal/spec_iterator",
-    "internal/specrunner",
-    "internal/suite",
-    "internal/testingtproxy",
-    "internal/writer",
-    "reporters",
-    "reporters/stenographer",
-    "reporters/stenographer/support/go-colorable",
-    "reporters/stenographer/support/go-isatty",
-    "types"
-  ]
-  revision = "9eda700730cba42af70d53180f9dcce9266bc2bc"
-  version = "v1.4.0"
-
-[[projects]]
-  name = "github.com/onsi/gomega"
-  packages = [
-    ".",
-    "format",
-    "internal/assertion",
-    "internal/asyncassertion",
-    "internal/oraclematcher",
-    "internal/testingtsupport",
-    "matchers",
-    "matchers/support/goraph/bipartitegraph",
-    "matchers/support/goraph/edge",
-    "matchers/support/goraph/node",
-    "matchers/support/goraph/util",
-    "types"
-  ]
-  revision = "003f63b7f4cff3fc95357005358af2de0f5fe152"
-  version = "v1.3.0"
+  name = "github.com/pmezard/go-difflib"
+  packages = ["difflib"]
+  revision = "792786c7400a136282c1664665ae0a8db921c6c2"
+  version = "v1.0.0"
 
 [[projects]]
   name = "github.com/spf13/afero"
@@ -90,48 +29,18 @@
   version = "v1.0.2"
 
 [[projects]]
-  name = "github.com/tedsuo/rata"
-  packages = ["."]
-  revision = "0649c23705dfb45a9693b668c4fc1c0666f485d9"
-  version = "v1.0.0"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/net"
-  packages = [
-    "html",
-    "html/atom",
-    "html/charset"
-  ]
-  revision = "0ed95abb35c445290478a5348a7b38bb154135fd"
-
-[[projects]]
-  branch = "master"
-  name = "golang.org/x/sys"
-  packages = ["unix"]
-  revision = "ff2a66f350cefa5c93a634eadb5d25bb60c85a9c"
+  name = "github.com/stretchr/testify"
+  packages = ["assert"]
+  revision = "12b6f73e6084dad08a7c6e575284b177ecafbc71"
+  version = "v1.2.1"
 
 [[projects]]
   branch = "master"
   name = "golang.org/x/text"
   packages = [
-    "encoding",
-    "encoding/charmap",
-    "encoding/htmlindex",
-    "encoding/internal",
-    "encoding/internal/identifier",
-    "encoding/japanese",
-    "encoding/korean",
-    "encoding/simplifiedchinese",
-    "encoding/traditionalchinese",
-    "encoding/unicode",
     "internal/gen",
-    "internal/tag",
     "internal/triegen",
     "internal/ucd",
-    "internal/utf8internal",
-    "language",
-    "runes",
     "transform",
     "unicode/cldr",
     "unicode/norm"
@@ -147,6 +56,6 @@
 [solve-meta]
   analyzer-name = "dep"
   analyzer-version = 1
-  inputs-digest = "70a507e3273752d5f3295dbe94bb83eaf3c0f89b689b5169b18f4685634d3b5f"
+  inputs-digest = "8d1a7135761e64d9efc9f1355b7508f53b51969102e625ed5cf4162422a757b3"
   solver-name = "gps-cdcl"
   solver-version = 1
