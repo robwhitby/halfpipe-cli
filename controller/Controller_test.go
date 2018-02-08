@@ -46,6 +46,18 @@ func TestManifestParseError(t *testing.T) {
 	assert.Contains(t, stdErr.String(), expectedError)
 }
 
+func TestManifestLintError(t *testing.T) {
+	ctrl, stdOut, stdErr := setup()
+	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte("foo: bar"), os.ModePerm)
+	ok := ctrl.Run()
+
+	assert.False(t, ok)
+	assert.Empty(t, stdOut.String())
+
+	expectedError := model.NewMissingField("team").Error()
+	assert.Contains(t, stdErr.String(), expectedError)
+}
+
 func TestEmptyManifest(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
 	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte{}, os.ModePerm)

@@ -22,27 +22,15 @@ type Controller struct {
 func (c *Controller) Run() (ok bool) {
 	manifestPath := path.Join(c.RootDir, ".halfpipe.io")
 
-	// does manifest exist?
-	if exists, _ := c.FileSystem.Exists(manifestPath); !exists {
-		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewMissingFile(manifestPath)))
-		return false
-	}
-
-	// read the file
-	bytes, err := c.FileSystem.ReadFile(manifestPath)
+	//read manifest file
+	yaml, err := readFile(c.FileSystem, manifestPath)
 	if err != nil {
-		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewParseError(err.Error())))
-		return false
-	}
-
-	// was the file empty?
-	if len(bytes) == 0 {
-		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewParseError(manifestPath+" is empty")))
+		fmt.Fprintln(c.ErrorWriter, err)
 		return false
 	}
 
 	// parse it into a model.Manifest
-	man, parseErrors := model.Parse(string(bytes))
+	man, parseErrors := model.Parse(yaml)
 	if len(parseErrors) > 0 {
 		fmt.Fprintln(c.ErrorWriter, errorReport(parseErrors...))
 		return false
@@ -57,6 +45,23 @@ func (c *Controller) Run() (ok bool) {
 	// TODO: generate the concourse yaml
 	fmt.Fprintln(c.OutputWriter, "Good job")
 	return true
+}
+
+func readFile(fs afero.Afero, path string) (string, error) {
+	if exists, _ := fs.Exists(path); !exists {
+		return "", model.NewMissingFile(path)
+	}
+
+	bytes, err := fs.ReadFile(path)
+	if err != nil {
+		return "", model.NewParseError(err.Error())
+	}
+
+	if len(bytes) == 0 {
+		return "", model.NewParseError(path + " is empty")
+	}
+
+	return string(bytes), nil
 }
 
 func errorReport(errs ...error) string {
