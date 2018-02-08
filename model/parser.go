@@ -14,7 +14,7 @@ func Parse(manifestYaml string) (man *Manifest, errs []error) {
 	}
 
 	if err := yaml.Unmarshal([]byte(manifestYaml), &man); err != nil {
-		addError(err)
+		addError(NewParseError(err.Error()))
 		return
 	}
 
@@ -22,7 +22,7 @@ func Parse(manifestYaml string) (man *Manifest, errs []error) {
 		Tasks []json.RawMessage
 	}
 	if err := yaml.Unmarshal([]byte(manifestYaml), &rawTasks); err != nil {
-		addError(err)
+		addError(NewParseError(err.Error()))
 		return
 	}
 

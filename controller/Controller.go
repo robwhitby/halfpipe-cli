@@ -20,23 +20,41 @@ type Controller struct {
 }
 
 func (c *Controller) Run() (ok bool) {
-	bytes, err := c.FileSystem.ReadFile(path.Join(c.RootDir, ".halfpipe.io"))
-	if err != nil {
-		fmt.Fprintln(c.ErrorWriter, errorReport(err))
+	manifestPath := path.Join(c.RootDir, ".halfpipe.io")
+
+	// does manifest exist?
+	if exists, _ := c.FileSystem.Exists(manifestPath); !exists {
+		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewMissingFile(manifestPath)))
 		return false
 	}
 
+	// read the file
+	bytes, err := c.FileSystem.ReadFile(manifestPath)
+	if err != nil {
+		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewParseError(err.Error())))
+		return false
+	}
+
+	// was the file empty?
+	if len(bytes) == 0 {
+		fmt.Fprintln(c.ErrorWriter, errorReport(model.NewParseError(manifestPath+" is empty")))
+		return false
+	}
+
+	// parse it into a model.Manifest
 	man, parseErrors := model.Parse(string(bytes))
 	if len(parseErrors) > 0 {
 		fmt.Fprintln(c.ErrorWriter, errorReport(parseErrors...))
 		return false
 	}
 
+	// lint it
 	if lintErrors := linter.Lint(man); len(lintErrors) > 0 {
 		fmt.Fprintln(c.ErrorWriter, errorReport(lintErrors...))
 		return false
 	}
 
+	// TODO: generate the concourse yaml
 	fmt.Fprintln(c.OutputWriter, "Good job")
 	return true
 }
