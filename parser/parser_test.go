@@ -1,17 +1,18 @@
-package model
+package parser
 
 import (
 	"testing"
 
+	. "github.com/robwhitby/halfpipe-cli/model"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestValidYaml(t *testing.T) {
 	man, errs := Parse("team: my team")
-	expected := &Manifest{Team: "my team"}
+	expected := Manifest{Team: "my team"}
 
 	assert.Nil(t, errs)
-	assert.Equal(t, man, expected)
+	assert.Equal(t, expected, man)
 }
 
 func TestInvalidYaml(t *testing.T) {
@@ -22,7 +23,7 @@ func TestInvalidYaml(t *testing.T) {
 
 func TestRepo(t *testing.T) {
 	man, errs := Parse("repo: { uri: myuri, private_key: mypk }")
-	expected := &Manifest{
+	expected := Manifest{
 		Repo: Repo{
 			Uri:        "myuri",
 			PrivateKey: "mypk",
@@ -30,14 +31,14 @@ func TestRepo(t *testing.T) {
 	}
 
 	assert.Nil(t, errs)
-	assert.Equal(t, man, expected)
+	assert.Equal(t, expected, man)
 }
 
 func TestRunTask(t *testing.T) {
 	man, errs := Parse("tasks: [{ name: run, image: alpine, script: build.sh, vars: { FOO: Foo, BAR: Bar } }]")
-	expected := &Manifest{
-		Tasks: []task{
-			&Run{
+	expected := Manifest{
+		Tasks: []Task{
+			Run{
 				Name:   "run",
 				Image:  "alpine",
 				Script: "build.sh",
@@ -50,26 +51,26 @@ func TestRunTask(t *testing.T) {
 	}
 
 	assert.Nil(t, errs)
-	assert.Equal(t, man, expected)
+	assert.Equal(t, expected, man)
 }
 
 func TestMultipleTasks(t *testing.T) {
 	man, errs := Parse("tasks: [{ name: run, image: img, script: build.sh }, { name: docker-push, username: bob }, { name: run }, { name: deploy-cf, org: foo }]")
-	expected := &Manifest{
-		Tasks: []task{
-			&Run{
+	expected := Manifest{
+		Tasks: []Task{
+			Run{
 				Name:   "run",
 				Image:  "img",
 				Script: "build.sh",
 			},
-			&DockerPush{
+			DockerPush{
 				Name:     "docker-push",
 				Username: "bob",
 			},
-			&Run{
+			Run{
 				Name: "run",
 			},
-			&DeployCF{
+			DeployCF{
 				Name: "deploy-cf",
 				Org:  "foo",
 			},
@@ -77,7 +78,7 @@ func TestMultipleTasks(t *testing.T) {
 	}
 
 	assert.Nil(t, errs)
-	assert.Equal(t, man, expected)
+	assert.Equal(t, expected, man)
 }
 
 func TestInvalidTask(t *testing.T) {
@@ -90,6 +91,6 @@ func TestReportMultipleInvalidTasks(t *testing.T) {
 	_, errs := Parse("tasks: [{ name: unknown, foo: bar }, { name: run, image: alpine, script: build.sh }, { notname: foo }]")
 
 	assert.Equal(t, len(errs), 2)
-	assert.IsType(t, errs[0], &invalidField{})
-	assert.IsType(t, errs[1], &invalidField{})
+	assert.IsType(t, errs[0], NewInvalidField("", ""))
+	assert.IsType(t, errs[1], NewInvalidField("", ""))
 }

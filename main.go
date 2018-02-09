@@ -3,6 +3,8 @@ package main
 import (
 	"os"
 
+	"syscall"
+
 	"github.com/robwhitby/halfpipe-cli/controller"
 	"github.com/spf13/afero"
 )
@@ -16,6 +18,8 @@ func main() {
 		ErrorWriter:  os.Stderr,
 	}
 
-	ctrl.Run()
+	if ok := ctrl.Run(); !ok {
+		syscall.Exit(1)
+	}
 
 }

@@ -6,7 +6,7 @@ import (
 	"github.com/robwhitby/halfpipe-cli/model"
 )
 
-func Lint(man *model.Manifest) (errs []error) {
+func Lint(man model.Manifest) (errs []error) {
 	addError := func(e error) {
 		errs = append(errs, e)
 	}

@@ -12,10 +12,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup() (*Controller, *bytes.Buffer, *bytes.Buffer) {
+func setup() (Controller, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
-	return &Controller{
+	return Controller{
 		FileSystem:   afero.Afero{Fs: afero.NewMemMapFs()},
 		RootDir:      "/root",
 		OutputWriter: stdOut,
@@ -30,8 +30,8 @@ func TestNoManifest(t *testing.T) {
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewMissingFile("/root/.halfpipe.io").Error()
-	assert.Contains(t, stdErr.String(), expectedError)
+	expectedError := model.NewMissingFile("/root/.halfpipe.io")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestParseError(t *testing.T) {
@@ -42,8 +42,8 @@ func TestManifestParseError(t *testing.T) {
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewParseError("").Error()
-	assert.Contains(t, stdErr.String(), expectedError)
+	expectedError := model.NewParseError("")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestLintError(t *testing.T) {
@@ -54,8 +54,8 @@ func TestManifestLintError(t *testing.T) {
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewMissingField("team").Error()
-	assert.Contains(t, stdErr.String(), expectedError)
+	expectedError := model.NewMissingField("team")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestEmptyManifest(t *testing.T) {
@@ -65,8 +65,8 @@ func TestEmptyManifest(t *testing.T) {
 
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
-	expectedError := model.NewParseError("/root/.halfpipe.io is empty").Error()
-	assert.Contains(t, stdErr.String(), expectedError)
+	expectedError := model.NewParseError("/root/.halfpipe.io is empty")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 // ignored cos permissions don't work in mem fs: https://github.com/spf13/afero/issues/150
@@ -77,8 +77,8 @@ func TestEmptyManifest(t *testing.T) {
 //
 //	assert.False(t, ok)
 //	assert.Empty(t, stdOut.String())
-//  expectedError := model.NewParseError("").Error()
-//	//assert.Contains(t, stdErr.String(), expectedError)
+//  expectedError := model.NewParseError("")
+//	//assert.Contains(t, stdErr.String(), expectedError.Error())
 //}
 
 func TestValidManifest(t *testing.T) {

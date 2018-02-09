@@ -9,6 +9,7 @@ import (
 
 	"github.com/robwhitby/halfpipe-cli/linter"
 	"github.com/robwhitby/halfpipe-cli/model"
+	"github.com/robwhitby/halfpipe-cli/parser"
 	"github.com/spf13/afero"
 )
 
@@ -30,7 +31,7 @@ func (c *Controller) Run() (ok bool) {
 	}
 
 	// parse it into a model.Manifest
-	man, parseErrors := model.Parse(yaml)
+	man, parseErrors := parser.Parse(yaml)
 	if len(parseErrors) > 0 {
 		fmt.Fprintln(c.ErrorWriter, errorReport(parseErrors...))
 		return false
