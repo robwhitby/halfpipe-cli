@@ -13,6 +13,8 @@ import (
 	"github.com/spf13/afero"
 )
 
+const documentationRootUrl = "http://docs.halfpipe.io"
+
 type Controller struct {
 	FileSystem   afero.Afero
 	RootDir      string
@@ -26,7 +28,7 @@ func (c *Controller) Run() (ok bool) {
 	//read manifest file
 	yaml, err := readFile(c.FileSystem, manifestPath)
 	if err != nil {
-		fmt.Fprintln(c.ErrorWriter, err)
+		fmt.Fprintln(c.ErrorWriter, errorReport(err))
 		return false
 	}
 
@@ -71,7 +73,7 @@ func errorReport(errs ...error) string {
 	for _, err := range errs {
 		lines = append(lines, "- "+err.Error())
 		if docs, ok := err.(model.Documented); ok {
-			lines = append(lines, fmt.Sprintf("  rtfm: http://docs.halfpipe.io%s", docs.DocumentationPath()))
+			lines = append(lines, fmt.Sprintf("  rtfm: %s%s", documentationRootUrl, docs.DocumentationPath()))
 		}
 	}
 	return strings.Join(lines, "\n")

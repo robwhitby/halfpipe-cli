@@ -45,7 +45,7 @@
     "unicode/cldr",
     "unicode/norm"
   ]
-  revision = "e19ae1496984b1c655b8044a65c0300a3c878dd3"
+  revision = "4e4a3210bb54bb31f6ab2cdca2edcc0b50c420c1"
 
 [[projects]]
   branch = "v2"

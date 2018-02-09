@@ -5,15 +5,23 @@ import (
 
 	"syscall"
 
+	"fmt"
+
 	"github.com/robwhitby/halfpipe-cli/controller"
 	"github.com/spf13/afero"
 )
 
 func main() {
 
+	pwd, err := os.Getwd()
+	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
+		syscall.Exit(1)
+	}
+
 	ctrl := &controller.Controller{
 		FileSystem:   afero.Afero{Fs: afero.NewOsFs()},
-		RootDir:      os.Getenv("HOME") + "/go/src/github.com/robwhitby/halfpipe-cli",
+		RootDir:      pwd,
 		OutputWriter: os.Stdout,
 		ErrorWriter:  os.Stderr,
 	}
