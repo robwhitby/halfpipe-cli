@@ -3,27 +3,44 @@ package linter
 import (
 	"strings"
 
-	"github.com/robwhitby/halfpipe-cli/model"
+	"fmt"
+
+	. "github.com/robwhitby/halfpipe-cli/model"
 )
 
-func Lint(man model.Manifest) (errs []error) {
-	addError := func(e error) {
-		errs = append(errs, e)
-	}
+func Lint(man Manifest) (errs []error) {
 
 	if man.Team == "" {
-		addError(model.NewMissingField("team"))
+		errs = append(errs, NewMissingField("team"))
 	}
 
 	if man.Repo.Uri == "" {
-		addError(model.NewMissingField("repo.uri"))
+		errs = append(errs, NewMissingField("repo.uri"))
 	} else if !strings.Contains(man.Repo.Uri, "github") {
-		addError(model.NewInvalidField("repo.uri", "must contain 'github'"))
+		errs = append(errs, NewInvalidField("repo.uri", "must contain 'github'"))
 	}
 
 	if len(man.Tasks) == 0 {
-		addError(model.NewMissingField("tasks"))
+		errs = append(errs, NewMissingField("tasks"))
+	}
+
+	for i, t := range man.Tasks {
+		switch task := t.(type) {
+		case Run:
+			lintRunTask(task, i+1, &errs)
+		default:
+			errs = append(errs, NewInvalidField("task", fmt.Sprintf("task %v '%s' is not a known task", i+1, task.GetName())))
+		}
 	}
 
 	return
+}
+
+func lintRunTask(run Run, taskNumber int, errs *[]error) {
+	if run.Script == "" {
+		*errs = append(*errs, NewMissingField(fmt.Sprintf("task %v: script", taskNumber)))
+	}
+	if run.Image == "" {
+		*errs = append(*errs, NewMissingField(fmt.Sprintf("task %v: image", taskNumber)))
+	}
 }

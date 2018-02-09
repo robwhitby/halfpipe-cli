@@ -16,11 +16,10 @@ type Task interface {
 }
 
 type Run struct {
-	Name     string
-	Script   string
-	Username string
-	Image    string
-	Vars     Vars
+	Name   string
+	Script string
+	Image  string
+	Vars   Vars
 }
 
 func (t Run) GetName() string {

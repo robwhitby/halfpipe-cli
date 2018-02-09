@@ -91,6 +91,7 @@ repo:
 tasks:
 - name: run
   script: foo
+  image: bar
 `
 	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte(yaml), os.ModePerm)
 	ok := ctrl.Run()
