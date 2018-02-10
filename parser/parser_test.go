@@ -94,3 +94,47 @@ func TestReportMultipleInvalidTasks(t *testing.T) {
 	assert.IsType(t, errs[0], NewInvalidField("", ""))
 	assert.IsType(t, errs[1], NewInvalidField("", ""))
 }
+
+func TestVarsParsedAsString(t *testing.T) {
+	man, errs := Parse(`
+tasks:
+- name: run
+  image: alpine
+  script: build.sh
+  vars:
+    STRING: Foo Bar
+    FLOAT: 4.2
+    BOOL: true
+`)
+
+	expected := Manifest{
+		Tasks: []Task{
+			Run{
+				Name:   "run",
+				Image:  "alpine",
+				Script: "build.sh",
+				Vars: Vars{
+					"STRING": "Foo Bar",
+					"FLOAT":  "4.2",
+					"BOOL":   "true",
+				},
+			},
+		},
+	}
+
+	assert.Nil(t, errs)
+	assert.Equal(t, expected, man)
+}
+
+func TestInvalidVars(t *testing.T) {
+	_, errs := Parse(`
+tasks:
+- name: run
+  image: alpine
+  script: build.sh
+  vars:
+    EMPTY:
+`)
+	expected := NewInvalidField("task", "")
+	assert.IsType(t, expected, errs[0])
+}

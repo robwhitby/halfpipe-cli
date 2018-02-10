@@ -18,7 +18,7 @@ tasks:
   image: openjdk:8-slim
   vars:
     A: asdf
-    B: "1234"
+    B: 1234
 - name: deploy-cf
   space: test
   api: https://api.europe-west1.cf.gcp.springernature.io
