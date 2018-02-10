@@ -1,0 +1,6 @@
+#!/bin/bash
+set -x -e
+
+go test ./...
+go vet ./...
+go install
