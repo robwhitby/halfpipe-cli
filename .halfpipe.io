@@ -24,5 +24,4 @@ tasks:
   api: https://api.europe-west1.cf.gcp.springernature.io
   vars:
     VAR1: asdf1234
-    VAR2: "9876"
-
+    VAR2: ((a.secret.in.vault))

@@ -19,7 +19,10 @@ func main() {
 		syscall.Exit(1)
 	}
 
-	ctrl := controller.NewController(afero.NewOsFs(), pwd, os.Stdout, os.Stderr)
+	fileSystem := afero.NewOsFs()
+	secretChecker := func(s string) bool { return false } //todo: vault checker
+
+	ctrl := controller.NewController(fileSystem, pwd, os.Stdout, os.Stderr, secretChecker)
 
 	if ok := ctrl.Run(); !ok {
 		syscall.Exit(1)

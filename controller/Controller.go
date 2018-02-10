@@ -18,16 +18,18 @@ const (
 )
 
 type controller struct {
-	FileSystem   afero.Afero
-	OutputWriter io.Writer
-	ErrorWriter  io.Writer
+	FileSystem    afero.Afero
+	OutputWriter  io.Writer
+	ErrorWriter   io.Writer
+	SecretChecker model.SecretChecker
 }
 
-func NewController(fileSystem afero.Fs, repoDir string, outWriter io.Writer, errWriter io.Writer) controller {
+func NewController(fileSystem afero.Fs, repoDir string, outWriter, errWriter io.Writer, secretChecker model.SecretChecker) controller {
 	return controller{
-		FileSystem:   afero.Afero{Fs: afero.NewBasePathFs(fileSystem, repoDir)},
-		OutputWriter: outWriter,
-		ErrorWriter:  errWriter,
+		FileSystem:    afero.Afero{Fs: afero.NewBasePathFs(fileSystem, repoDir)},
+		OutputWriter:  outWriter,
+		ErrorWriter:   errWriter,
+		SecretChecker: secretChecker,
 	}
 }
 
@@ -47,13 +49,12 @@ func (c controller) Run() (ok bool) {
 	}
 
 	// lint it
-	manifestErrors := linter.LintManifest(man)
-	fileErrors := linter.LintFiles(man, c.FileSystem)
+	lintErrors := linter.LintManifest(man)
+	lintErrors = append(lintErrors, linter.LintFiles(man, c.FileSystem)...)
+	lintErrors = append(lintErrors, linter.LintSecrets(man, c.SecretChecker)...)
 
-	allErrors := append(manifestErrors, fileErrors...)
-
-	if len(allErrors) > 0 {
-		fmt.Fprintln(c.ErrorWriter, errorReport(allErrors...))
+	if len(lintErrors) > 0 {
+		fmt.Fprintln(c.ErrorWriter, errorReport(lintErrors...))
 		return false
 	}
 

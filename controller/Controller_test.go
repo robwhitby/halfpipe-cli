@@ -13,7 +13,11 @@ import (
 func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
-	return NewController(afero.NewMemMapFs(), "/root", stdOut, stdErr), stdOut, stdErr
+
+	//only 'valid.secret' exists
+	secretChecker := func(s string) bool { return s == "valid.secret" }
+
+	return NewController(afero.NewMemMapFs(), "/root", stdOut, stdErr, secretChecker), stdOut, stdErr
 }
 
 func TestNoManifest(t *testing.T) {
@@ -72,6 +76,34 @@ tasks:
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
+func TestManifestRequiredSecretError(t *testing.T) {
+	ctrl, stdOut, stdErr := setup()
+	yaml := `
+team: foo
+repo: 
+  uri: git@github.com/foo/bar.git
+tasks:
+- name: run
+  script: build.sh
+  image: bar
+  vars:
+    badsecret: ((path.to.key))
+    goodsecret: ((valid.secret))
+`
+	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
+	ctrl.FileSystem.WriteFile("build.sh", []byte("x"), 0777)
+	ok := ctrl.Run()
+
+	assert.False(t, ok)
+	assert.Empty(t, stdOut.String())
+
+	expectedError := model.NewMissingSecret("path.to.key")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
+
+	unexpected := model.NewMissingSecret("valid.secret")
+	assert.NotContains(t, stdErr.String(), unexpected.Error())
+}
+
 func TestValidManifest(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
 
@@ -81,11 +113,13 @@ repo:
   uri: git@github.com/foo/bar.git
 tasks:
 - name: run
-  script: foo/bar.sh
+  script: build.sh
   image: bar
+  vars:
+    secret: ((valid.secret))
 `
 	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
-	ctrl.FileSystem.WriteFile("foo/bar.sh", []byte("x"), 0777)
+	ctrl.FileSystem.WriteFile("build.sh", []byte("x"), 0777)
 	ok := ctrl.Run()
 
 	assert.True(t, ok)

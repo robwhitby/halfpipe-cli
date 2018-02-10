@@ -73,3 +73,19 @@ func (e parseError) DocumentationPath() string {
 func NewParseError(message string) parseError {
 	return parseError{message}
 }
+
+type missingSecret struct {
+	Name string
+}
+
+func (e missingSecret) Error() string {
+	return fmt.Sprintf("Secret '%s' not found", e.Name)
+}
+
+func (e missingSecret) DocumentationPath() string {
+	return "/docs/manifest/secrets"
+}
+
+func NewMissingSecret(name string) missingSecret {
+	return missingSecret{name}
+}
