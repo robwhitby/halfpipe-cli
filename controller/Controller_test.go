@@ -10,20 +10,10 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const (
-	rootDir      = "/root/"
-	manifestPath = rootDir + manifestFilename
-)
-
-func setup() (Controller, *bytes.Buffer, *bytes.Buffer) {
+func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
-	return Controller{
-		FileSystem:   afero.Afero{Fs: afero.NewMemMapFs()},
-		RootDir:      rootDir,
-		OutputWriter: stdOut,
-		ErrorWriter:  stdErr,
-	}, stdOut, stdErr
+	return NewController(afero.NewMemMapFs(), "/root", stdOut, stdErr), stdOut, stdErr
 }
 
 func TestNoManifest(t *testing.T) {
@@ -33,13 +23,13 @@ func TestNoManifest(t *testing.T) {
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewFileError(manifestPath, "does not exist")
+	expectedError := model.NewFileError(manifestFilename, "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestParseError(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile(manifestPath, []byte("^&*(^&*"), 0777)
+	ctrl.FileSystem.WriteFile(manifestFilename, []byte("^&*(^&*"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
@@ -51,7 +41,7 @@ func TestManifestParseError(t *testing.T) {
 
 func TestManifestLintError(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile(manifestPath, []byte("foo: bar"), 0777)
+	ctrl.FileSystem.WriteFile(manifestFilename, []byte("foo: bar"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
@@ -72,13 +62,13 @@ tasks:
   script: ./build.sh
   image: bar
 `
-	ctrl.FileSystem.WriteFile(manifestPath, []byte(yaml), 0777)
+	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewFileError("/root/build.sh", "does not exist")
+	expectedError := model.NewFileError("./build.sh", "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
@@ -91,11 +81,11 @@ repo:
   uri: git@github.com/foo/bar.git
 tasks:
 - name: run
-  script: ./foo/bar.sh
+  script: foo/bar.sh
   image: bar
 `
-	ctrl.FileSystem.WriteFile(manifestPath, []byte(yaml), 0777)
-	ctrl.FileSystem.WriteFile("/root/foo/bar.sh", []byte("x"), 0777)
+	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
+	ctrl.FileSystem.WriteFile("foo/bar.sh", []byte("x"), 0777)
 	ok := ctrl.Run()
 
 	assert.True(t, ok)

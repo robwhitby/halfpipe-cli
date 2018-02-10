@@ -2,7 +2,6 @@ package controller
 
 import (
 	"fmt"
-	"path"
 	"strings"
 
 	"io"
@@ -18,16 +17,23 @@ const (
 	manifestFilename     = ".halfpipe.io"
 )
 
-type Controller struct {
+type controller struct {
 	FileSystem   afero.Afero
-	RootDir      string
 	OutputWriter io.Writer
 	ErrorWriter  io.Writer
 }
 
-func (c *Controller) Run() (ok bool) {
+func NewController(fileSystem afero.Fs, repoDir string, outWriter io.Writer, errWriter io.Writer) controller {
+	return controller{
+		FileSystem:   afero.Afero{Fs: afero.NewBasePathFs(fileSystem, repoDir)},
+		OutputWriter: outWriter,
+		ErrorWriter:  errWriter,
+	}
+}
+
+func (c controller) Run() (ok bool) {
 	//read manifest file
-	yaml, err := readManifest(c.FileSystem, c.RootDir)
+	yaml, err := readManifest(c.FileSystem)
 	if err != nil {
 		fmt.Fprintln(c.ErrorWriter, errorReport(err))
 		return false
@@ -42,7 +48,7 @@ func (c *Controller) Run() (ok bool) {
 
 	// lint it
 	manifestErrors := linter.LintManifest(man)
-	fileErrors := linter.LintFiles(man, c.RootDir, c.FileSystem)
+	fileErrors := linter.LintFiles(man, c.FileSystem)
 
 	allErrors := append(manifestErrors, fileErrors...)
 
@@ -56,11 +62,11 @@ func (c *Controller) Run() (ok bool) {
 	return true
 }
 
-func readManifest(fs afero.Afero, rootDir string) (string, error) {
-	if err := linter.CheckFile(linter.RequiredFile{Path: manifestFilename}, rootDir, fs); err != nil {
+func readManifest(fs afero.Afero) (string, error) {
+	if err := linter.CheckFile(linter.RequiredFile{Path: manifestFilename}, fs); err != nil {
 		return "", err
 	}
-	bytes, err := fs.ReadFile(path.Join(rootDir, manifestFilename))
+	bytes, err := fs.ReadFile(manifestFilename)
 	if err != nil {
 		return "", model.NewFileError(manifestFilename, err.Error())
 	}

@@ -8,68 +8,74 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-const rootDir = "/some/root/dir/"
-
 func fs() afero.Afero {
-	return afero.Afero{Fs: afero.NewMemMapFs()}
+	return afero.Afero{Fs: afero.NewBasePathFs(afero.NewMemMapFs(), "/some/root")}
 }
 
 func TestFile_NotExists(t *testing.T) {
 	fs := fs()
-	err := CheckFile(RequiredFile{Path: ".halfpipe.io"}, rootDir, fs)
+	err := CheckFile(RequiredFile{Path: "missing.file"}, fs)
 
-	assert.Equal(t, NewFileError(rootDir+".halfpipe.io", "does not exist"), err)
+	assert.Equal(t, NewFileError("missing.file", "does not exist"), err)
 }
 
 func TestFile_Empty(t *testing.T) {
 	fs := fs()
-	fs.WriteFile(rootDir+".halfpipe.io", []byte{}, 0777)
+	fs.WriteFile(".halfpipe.io", []byte{}, 0777)
 
-	err := CheckFile(RequiredFile{Path: ".halfpipe.io"}, rootDir, fs)
-	assert.Equal(t, NewFileError(rootDir+".halfpipe.io", "is empty"), err)
+	err := CheckFile(RequiredFile{Path: ".halfpipe.io"}, fs)
+	assert.Equal(t, NewFileError(".halfpipe.io", "is empty"), err)
 }
 
 func TestFile_IsDirectory(t *testing.T) {
 	fs := fs()
-	fs.Mkdir(rootDir+"build", 0777)
+	fs.Mkdir("build", 0777)
 
-	err := CheckFile(RequiredFile{Path: "build"}, rootDir, fs)
-	assert.Equal(t, NewFileError(rootDir+"build", "is not a regular file"), err)
+	err := CheckFile(RequiredFile{Path: "build"}, fs)
+	assert.Equal(t, NewFileError("build", "is not a regular file"), err)
 }
 
 func TestFile_NotExecutable(t *testing.T) {
 	fs := fs()
-	fs.WriteFile(rootDir+"build.sh", []byte("go test"), 0400)
+	fs.WriteFile("build.sh", []byte("go test"), 0400)
 
-	err := CheckFile(RequiredFile{Path: "build.sh", Executable: true}, rootDir, fs)
-	assert.Equal(t, NewFileError(rootDir+"build.sh", "is not executable"), err)
+	err := CheckFile(RequiredFile{Path: "build.sh", Executable: true}, fs)
+	assert.Equal(t, NewFileError("build.sh", "is not executable"), err)
 
-	err = CheckFile(RequiredFile{Path: "build.sh", Executable: false}, rootDir, fs)
+	err = CheckFile(RequiredFile{Path: "build.sh", Executable: false}, fs)
 	assert.Nil(t, err)
 }
 
 func TestFile_Happy(t *testing.T) {
 	fs := fs()
-	fs.WriteFile(rootDir+".halfpipe.io", []byte("foo"), 0700)
-	err := CheckFile(RequiredFile{Path: ".halfpipe.io", Executable: true}, rootDir, fs)
+	fs.WriteFile(".halfpipe.io", []byte("foo"), 0700)
+	err := CheckFile(RequiredFile{Path: ".halfpipe.io", Executable: true}, fs)
 
 	assert.Nil(t, err)
 }
 
-var manifest = Manifest{
-	Team: "ee",
-	Repo: Repo{Uri: "http://github.com/foo/bar.git"},
-	Tasks: []Task{Run{
-		Script: "./build.sh",
-		Image:  "alpine",
-	}},
-}
+func TestRequiredFiles_FindAllFiles(t *testing.T) {
+	var manifest = Manifest{
+		Team: "ee",
+		Repo: Repo{Uri: "http://github.com/foo/bar.git"},
+		Tasks: []Task{
+			Run{
+				Script: "./build1.sh",
+				Image:  "alpine",
+			},
+			Run{
+				Script: "./build2.sh",
+				Image:  "alpine",
+			}},
+	}
 
-func TestRequiredFiles_RunTaskScript(t *testing.T) {
 	files := requiredFiles(manifest)
 
 	expected := []RequiredFile{{
-		Path:       "./build.sh",
+		Path:       "./build1.sh",
+		Executable: true,
+	}, {
+		Path:       "./build2.sh",
 		Executable: true,
 	}}
 

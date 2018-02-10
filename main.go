@@ -19,12 +19,7 @@ func main() {
 		syscall.Exit(1)
 	}
 
-	ctrl := &controller.Controller{
-		FileSystem:   afero.Afero{Fs: afero.NewOsFs()},
-		RootDir:      pwd,
-		OutputWriter: os.Stdout,
-		ErrorWriter:  os.Stderr,
-	}
+	ctrl := controller.NewController(afero.NewOsFs(), pwd, os.Stdout, os.Stderr)
 
 	if ok := ctrl.Run(); !ok {
 		syscall.Exit(1)
