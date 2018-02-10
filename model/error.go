@@ -41,20 +41,21 @@ func NewInvalidField(name string, reason string) invalidField {
 	return invalidField{name, reason}
 }
 
-type missingFile struct {
-	Path string
+type fileError struct {
+	Path   string
+	Reason string
 }
 
-func (e missingFile) Error() string {
-	return fmt.Sprintf("Missing file: %s", e.Path)
+func (e fileError) Error() string {
+	return fmt.Sprintf("File '%s' %s", e.Path, e.Reason)
 }
 
-func (e missingFile) DocumentationPath() string {
+func (e fileError) DocumentationPath() string {
 	return "/docs/manifest/required-files"
 }
 
-func NewMissingFile(name string) missingFile {
-	return missingFile{name}
+func NewFileError(path string, reason string) fileError {
+	return fileError{Path: path, Reason: reason}
 }
 
 type parseError struct {

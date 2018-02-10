@@ -13,7 +13,10 @@ import (
 	"github.com/spf13/afero"
 )
 
-const documentationRootUrl = "http://docs.halfpipe.io"
+const (
+	documentationRootUrl = "http://docs.halfpipe.io"
+	manifestFilename     = ".halfpipe.io"
+)
 
 type Controller struct {
 	FileSystem   afero.Afero
@@ -23,10 +26,8 @@ type Controller struct {
 }
 
 func (c *Controller) Run() (ok bool) {
-	manifestPath := path.Join(c.RootDir, ".halfpipe.io")
-
 	//read manifest file
-	yaml, err := readFile(c.FileSystem, manifestPath)
+	yaml, err := readManifest(c.FileSystem, c.RootDir)
 	if err != nil {
 		fmt.Fprintln(c.ErrorWriter, errorReport(err))
 		return false
@@ -40,8 +41,13 @@ func (c *Controller) Run() (ok bool) {
 	}
 
 	// lint it
-	if lintErrors := linter.Lint(man); len(lintErrors) > 0 {
-		fmt.Fprintln(c.ErrorWriter, errorReport(lintErrors...))
+	manifestErrors := linter.LintManifest(man)
+	fileErrors := linter.LintFiles(man, c.RootDir, c.FileSystem)
+
+	allErrors := append(manifestErrors, fileErrors...)
+
+	if len(allErrors) > 0 {
+		fmt.Fprintln(c.ErrorWriter, errorReport(allErrors...))
 		return false
 	}
 
@@ -50,20 +56,14 @@ func (c *Controller) Run() (ok bool) {
 	return true
 }
 
-func readFile(fs afero.Afero, path string) (string, error) {
-	if exists, _ := fs.Exists(path); !exists {
-		return "", model.NewMissingFile(path)
+func readManifest(fs afero.Afero, rootDir string) (string, error) {
+	if err := linter.CheckFile(model.RequiredFile{Path: manifestFilename}, rootDir, fs); err != nil {
+		return "", err
 	}
-
-	bytes, err := fs.ReadFile(path)
+	bytes, err := fs.ReadFile(path.Join(rootDir, manifestFilename))
 	if err != nil {
-		return "", model.NewParseError(err.Error())
+		return "", model.NewFileError(manifestFilename, err.Error())
 	}
-
-	if len(bytes) == 0 {
-		return "", model.NewParseError(path + " is empty")
-	}
-
 	return string(bytes), nil
 }
 

@@ -8,7 +8,7 @@ import (
 	. "github.com/robwhitby/halfpipe-cli/model"
 )
 
-func Lint(man Manifest) (errs []error) {
+func LintManifest(man Manifest) (errs []error) {
 
 	if man.Team == "" {
 		errs = append(errs, NewMissingField("team"))

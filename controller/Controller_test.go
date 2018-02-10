@@ -5,11 +5,14 @@ import (
 
 	"bytes"
 
-	"os"
-
 	"github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
+)
+
+const (
+	rootDir      = "/root/"
+	manifestPath = rootDir + manifestFilename
 )
 
 func setup() (Controller, *bytes.Buffer, *bytes.Buffer) {
@@ -17,7 +20,7 @@ func setup() (Controller, *bytes.Buffer, *bytes.Buffer) {
 	stdErr := bytes.NewBufferString("")
 	return Controller{
 		FileSystem:   afero.Afero{Fs: afero.NewMemMapFs()},
-		RootDir:      "/root",
+		RootDir:      rootDir,
 		OutputWriter: stdOut,
 		ErrorWriter:  stdErr,
 	}, stdOut, stdErr
@@ -30,13 +33,13 @@ func TestNoManifest(t *testing.T) {
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
 
-	expectedError := model.NewMissingFile("/root/.halfpipe.io")
+	expectedError := model.NewFileError(manifestPath, "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestParseError(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte("^&*(^&*"), os.ModePerm)
+	ctrl.FileSystem.WriteFile(manifestPath, []byte("^&*(^&*"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
@@ -48,7 +51,7 @@ func TestManifestParseError(t *testing.T) {
 
 func TestManifestLintError(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte("foo: bar"), os.ModePerm)
+	ctrl.FileSystem.WriteFile(manifestPath, []byte("foo: bar"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
@@ -58,28 +61,26 @@ func TestManifestLintError(t *testing.T) {
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
-func TestEmptyManifest(t *testing.T) {
+func TestManifestRequiredFileError(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte{}, os.ModePerm)
+	yaml := `
+team: foo
+repo: 
+  uri: git@github.com/foo/bar.git
+tasks:
+- name: run
+  script: ./build.sh
+  image: bar
+`
+	ctrl.FileSystem.WriteFile(manifestPath, []byte(yaml), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
 	assert.Empty(t, stdOut.String())
-	expectedError := model.NewParseError("/root/.halfpipe.io is empty")
+
+	expectedError := model.NewFileError("/root/build.sh", "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
-
-// ignored cos permissions don't work in mem fs: https://github.com/spf13/afero/issues/150
-//func TestPermissionsManifest(t *testing.T) {
-//	ctrl, stdOut, stdErr := setup()
-//	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte{}, 0)
-//	ok := ctrl.Run()
-//
-//	assert.False(t, ok)
-//	assert.Empty(t, stdOut.String())
-//  expectedError := model.NewParseError("")
-//	//assert.Contains(t, stdErr.String(), expectedError.Error())
-//}
 
 func TestValidManifest(t *testing.T) {
 	ctrl, stdOut, stdErr := setup()
@@ -90,10 +91,11 @@ repo:
   uri: git@github.com/foo/bar.git
 tasks:
 - name: run
-  script: foo
+  script: ./foo/bar.sh
   image: bar
 `
-	ctrl.FileSystem.WriteFile("/root/.halfpipe.io", []byte(yaml), os.ModePerm)
+	ctrl.FileSystem.WriteFile(manifestPath, []byte(yaml), 0777)
+	ctrl.FileSystem.WriteFile("/root/foo/bar.sh", []byte("x"), 0777)
 	ok := ctrl.Run()
 
 	assert.True(t, ok)

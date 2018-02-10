@@ -19,13 +19,13 @@ var validManifest = Manifest{
 }
 
 func TestValidManifest(t *testing.T) {
-	errs := Lint(validManifest)
+	errs := LintManifest(validManifest)
 	assert.Empty(t, errs)
 }
 
 func TestEmptyManifest(t *testing.T) {
 	man := Manifest{}
-	errs := Lint(man)
+	errs := LintManifest(man)
 
 	assert.Len(t, errs, 3, "total 3 errs")
 	assert.Contains(t, errs, NewMissingField("team"))
@@ -36,7 +36,7 @@ func TestEmptyManifest(t *testing.T) {
 func TestRepo_UriFormat(t *testing.T) {
 	man := validManifest
 	man.Repo.Uri = "blah"
-	errs := Lint(man)
+	errs := LintManifest(man)
 
 	assert.Equal(t, errs[0], NewInvalidField("repo.uri", "must contain 'github'"))
 }
@@ -93,7 +93,7 @@ func TestUnknownTask(t *testing.T) {
 	man := validManifest
 	man.Tasks = []Task{unknownTask{"foo"}}
 
-	errs := Lint(man)
+	errs := LintManifest(man)
 
 	assert.Len(t, errs, 1)
 	assert.IsType(t, NewInvalidField("", ""), errs[0])
