@@ -57,7 +57,7 @@ func (c *Controller) Run() (ok bool) {
 }
 
 func readManifest(fs afero.Afero, rootDir string) (string, error) {
-	if err := linter.CheckFile(model.RequiredFile{Path: manifestFilename}, rootDir, fs); err != nil {
+	if err := linter.CheckFile(linter.RequiredFile{Path: manifestFilename}, rootDir, fs); err != nil {
 		return "", err
 	}
 	bytes, err := fs.ReadFile(path.Join(rootDir, manifestFilename))

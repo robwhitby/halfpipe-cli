@@ -7,6 +7,11 @@ import (
 	"github.com/spf13/afero"
 )
 
+type RequiredFile struct {
+	Path       string
+	Executable bool
+}
+
 func requiredFiles(man Manifest) (files []RequiredFile) {
 	for _, t := range man.Tasks {
 		switch task := t.(type) {
