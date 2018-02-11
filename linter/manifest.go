@@ -5,6 +5,8 @@ import (
 
 	"fmt"
 
+	"errors"
+
 	. "github.com/robwhitby/halfpipe-cli/model"
 )
 
@@ -28,6 +30,10 @@ func LintManifest(man Manifest) (errs []error) {
 		switch task := t.(type) {
 		case Run:
 			lintRunTask(task, i+1, &errs)
+		case DeployCF:
+			lintDeployCFTask(task, i+1, &errs)
+		case DockerPush:
+			lintDockerPushTask(task, i+1, &errs)
 		default:
 			errs = append(errs, NewInvalidField("task", fmt.Sprintf("task %v '%s' is not a known task", i+1, task.GetName())))
 		}
@@ -36,11 +42,21 @@ func LintManifest(man Manifest) (errs []error) {
 	return
 }
 
-func lintRunTask(run Run, taskNumber int, errs *[]error) {
-	if run.Script == "" {
+func lintRunTask(task Run, taskNumber int, errs *[]error) {
+	if task.Script == "" {
 		*errs = append(*errs, NewMissingField(fmt.Sprintf("task %v: script", taskNumber)))
 	}
-	if run.Image == "" {
+	if task.Image == "" {
 		*errs = append(*errs, NewMissingField(fmt.Sprintf("task %v: image", taskNumber)))
 	}
+}
+
+func lintDeployCFTask(task DeployCF, taskNumber int, errs *[]error) {
+	*errs = append(*errs, errors.New("todo: lint deploy-cf task"))
+	return
+}
+
+func lintDockerPushTask(task DockerPush, taskNumber int, errs *[]error) {
+	*errs = append(*errs, errors.New("todo: lint docker-push task"))
+	return
 }
