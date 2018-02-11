@@ -4,12 +4,10 @@ import (
 	"fmt"
 	"strings"
 
-	"io"
-
 	"path/filepath"
 
 	"github.com/robwhitby/halfpipe-cli/linter"
-	"github.com/robwhitby/halfpipe-cli/model"
+	. "github.com/robwhitby/halfpipe-cli/model"
 	"github.com/robwhitby/halfpipe-cli/parser"
 	"github.com/spf13/afero"
 )
@@ -17,31 +15,12 @@ import (
 const (
 	documentationRootUrl = "http://docs.halfpipe.io"
 	manifestFilename     = ".halfpipe.io"
-	version              = "0.01"
 )
 
-type controller struct {
-	FileSystem    afero.Fs
-	Options       model.Options
-	OutputWriter  io.Writer
-	ErrorWriter   io.Writer
-	SecretChecker model.SecretChecker
-}
-
-func NewController(fileSystem afero.Fs, options model.Options, outWriter, errWriter io.Writer, secretChecker model.SecretChecker) controller {
-	return controller{
-		FileSystem:    fileSystem,
-		Options:       options,
-		OutputWriter:  outWriter,
-		ErrorWriter:   errWriter,
-		SecretChecker: secretChecker,
-	}
-}
-
-func (c controller) Run() (ok bool) {
+func Process(c Config) (ok bool) {
 	//show version info?
 	if c.Options.ShowVersion {
-		fmt.Fprintln(c.OutputWriter, versionText())
+		fmt.Fprintln(c.OutputWriter, versionMessage(c.Version))
 		return true
 	}
 
@@ -62,7 +41,7 @@ func (c controller) Run() (ok bool) {
 		return false
 	}
 
-	// parse it into a model.Manifest
+	// parse it into a Manifest
 	man, parseErrors := parser.Parse(yaml)
 	if len(parseErrors) > 0 {
 		fmt.Fprintln(c.ErrorWriter, errorReport(parseErrors...))
@@ -90,7 +69,7 @@ func readManifest(fs afero.Afero) (string, error) {
 	}
 	bytes, err := fs.ReadFile(manifestFilename)
 	if err != nil {
-		return "", model.NewFileError(manifestFilename, err.Error())
+		return "", NewFileError(manifestFilename, err.Error())
 	}
 	return string(bytes), nil
 }
@@ -100,7 +79,7 @@ func errorReport(errs ...error) string {
 	lines = append(lines, "Found some problems:")
 	for _, err := range errs {
 		lines = append(lines, "- "+err.Error())
-		if docs, ok := err.(model.Documented); ok {
+		if docs, ok := err.(Documented); ok {
 			lines = append(lines, fmt.Sprintf("  rtfm: %s%s", documentationRootUrl, docs.DocumentationPath()))
 		}
 	}
@@ -108,7 +87,7 @@ func errorReport(errs ...error) string {
 }
 
 func absDir(dir string, fs afero.Fs) (string, error) {
-	dirError := model.NewFileError(dir, "is not a directory")
+	dirError := NewFileError(dir, "is not a directory")
 	abs, err := filepath.Abs(dir)
 	if err != nil {
 		return "", dirError
@@ -123,6 +102,6 @@ func absDir(dir string, fs afero.Fs) (string, error) {
 	return abs, nil
 }
 
-func versionText() string {
-	return fmt.Sprintf("halfpipe v%v", version)
+func versionMessage(v string) string {
+	return fmt.Sprintf("halfpipe %v", v)
 }
