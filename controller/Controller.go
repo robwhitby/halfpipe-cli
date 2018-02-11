@@ -6,18 +6,14 @@ import (
 
 	"path/filepath"
 
+	"github.com/robwhitby/halfpipe-cli/config"
 	"github.com/robwhitby/halfpipe-cli/linter"
 	. "github.com/robwhitby/halfpipe-cli/model"
 	"github.com/robwhitby/halfpipe-cli/parser"
 	"github.com/spf13/afero"
 )
 
-const (
-	documentationRootUrl = "http://docs.halfpipe.io"
-	manifestFilename     = ".halfpipe.io"
-)
-
-func Process(c Config) (ok bool) {
+func Process(c config.Config) (ok bool) {
 	//show version info?
 	if c.Options.ShowVersion {
 		fmt.Fprintln(c.OutputWriter, versionMessage(c.Version))
@@ -64,12 +60,12 @@ func Process(c Config) (ok bool) {
 }
 
 func readManifest(fs afero.Afero) (string, error) {
-	if err := linter.CheckFile(linter.RequiredFile{Path: manifestFilename}, fs); err != nil {
+	if err := linter.CheckFile(linter.RequiredFile{Path: config.ManifestFilename}, fs); err != nil {
 		return "", err
 	}
-	bytes, err := fs.ReadFile(manifestFilename)
+	bytes, err := fs.ReadFile(config.ManifestFilename)
 	if err != nil {
-		return "", NewFileError(manifestFilename, err.Error())
+		return "", NewFileError(config.ManifestFilename, err.Error())
 	}
 	return string(bytes), nil
 }
@@ -80,7 +76,7 @@ func errorReport(errs ...error) string {
 	for _, err := range errs {
 		lines = append(lines, "- "+err.Error())
 		if docs, ok := err.(Documented); ok {
-			lines = append(lines, fmt.Sprintf("  rtfm: %s%s", documentationRootUrl, docs.DocumentationPath()))
+			lines = append(lines, fmt.Sprintf("  rtfm: %s%s", config.DocumentationRootUrl, docs.DocumentationPath()))
 		}
 	}
 	return strings.Join(lines, "\n")

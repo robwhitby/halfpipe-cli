@@ -7,6 +7,7 @@ import (
 
 	"os"
 
+	"github.com/robwhitby/halfpipe-cli/config"
 	. "github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
@@ -14,21 +15,21 @@ import (
 
 const root = "/root/"
 
-var opts = Options{
+var opts = config.Options{
 	ShowVersion: false,
-	Args: Args{
+	Args: config.Args{
 		Dir: root,
 	},
 }
 
-func setup() (Config, *bytes.Buffer, *bytes.Buffer) {
+func setup() (config.Config, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
 
 	//only 'valid.secret' exists
 	secretChecker := func(s string) bool { return s == "valid.secret" }
 
-	conf := Config{
+	conf := config.Config{
 		FileSystem:    afero.NewMemMapFs(),
 		Options:       opts,
 		OutputWriter:  stdOut,
@@ -42,18 +43,18 @@ func setup() (Config, *bytes.Buffer, *bytes.Buffer) {
 }
 
 func TestNoManifest(t *testing.T) {
-	config, _, stdErr := setup()
-	ok := Process(config)
+	conf, _, stdErr := setup()
+	ok := Process(conf)
 
 	assert.False(t, ok)
-	expectedError := NewFileError(manifestFilename, "does not exist")
+	expectedError := NewFileError(config.ManifestFilename, "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestParseError(t *testing.T) {
-	config, _, stdErr := setup()
-	afero.WriteFile(config.FileSystem, root+manifestFilename, []byte("^&*(^&*"), 0777)
-	ok := Process(config)
+	conf, _, stdErr := setup()
+	afero.WriteFile(conf.FileSystem, root+config.ManifestFilename, []byte("^&*(^&*"), 0777)
+	ok := Process(conf)
 
 	assert.False(t, ok)
 	expectedError := NewParseError("")
@@ -61,9 +62,9 @@ func TestManifestParseError(t *testing.T) {
 }
 
 func TestManifestLintError(t *testing.T) {
-	config, _, stdErr := setup()
-	afero.WriteFile(config.FileSystem, root+manifestFilename, []byte("foo: bar"), 0777)
-	ok := Process(config)
+	conf, _, stdErr := setup()
+	afero.WriteFile(conf.FileSystem, root+config.ManifestFilename, []byte("foo: bar"), 0777)
+	ok := Process(conf)
 
 	assert.False(t, ok)
 	expectedError := NewMissingField("team")
@@ -71,7 +72,7 @@ func TestManifestLintError(t *testing.T) {
 }
 
 func TestManifestRequiredFileError(t *testing.T) {
-	config, _, stdErr := setup()
+	conf, _, stdErr := setup()
 	yaml := `
 team: foo
 repo: 
@@ -81,8 +82,8 @@ tasks:
   script: ./build.sh
   image: bar
 `
-	afero.WriteFile(config.FileSystem, root+manifestFilename, []byte(yaml), 0777)
-	ok := Process(config)
+	afero.WriteFile(conf.FileSystem, root+config.ManifestFilename, []byte(yaml), 0777)
+	ok := Process(conf)
 
 	assert.False(t, ok)
 	expectedError := NewFileError("./build.sh", "does not exist")
@@ -90,7 +91,7 @@ tasks:
 }
 
 func TestManifestRequiredSecretError(t *testing.T) {
-	config, _, stdErr := setup()
+	conf, _, stdErr := setup()
 	yaml := `
 team: foo
 repo: 
@@ -103,9 +104,9 @@ tasks:
     badsecret: ((path.to.key))
     goodsecret: ((valid.secret))
 `
-	afero.WriteFile(config.FileSystem, root+manifestFilename, []byte(yaml), 0777)
-	afero.WriteFile(config.FileSystem, root+"build.sh", []byte("x"), 0777)
-	ok := Process(config)
+	afero.WriteFile(conf.FileSystem, root+config.ManifestFilename, []byte(yaml), 0777)
+	afero.WriteFile(conf.FileSystem, root+"build.sh", []byte("x"), 0777)
+	ok := Process(conf)
 
 	assert.False(t, ok)
 	expectedError := NewMissingSecret("path.to.key")
@@ -116,7 +117,7 @@ tasks:
 }
 
 func TestValidManifest(t *testing.T) {
-	config, stdOut, stdErr := setup()
+	conf, stdOut, stdErr := setup()
 
 	yaml := `
 team: foo
@@ -129,9 +130,9 @@ tasks:
   vars:
     secret: ((valid.secret))
 `
-	afero.WriteFile(config.FileSystem, root+manifestFilename, []byte(yaml), 0777)
-	afero.WriteFile(config.FileSystem, "/root/build.sh", []byte("x"), 0777)
-	ok := Process(config)
+	afero.WriteFile(conf.FileSystem, root+config.ManifestFilename, []byte(yaml), 0777)
+	afero.WriteFile(conf.FileSystem, "/root/build.sh", []byte("x"), 0777)
+	ok := Process(conf)
 
 	assert.True(t, ok)
 	assert.Empty(t, stdErr.String())
@@ -139,9 +140,9 @@ tasks:
 }
 
 func TestController_ChecksRootDir(t *testing.T) {
-	config, _, stdErr := setup()
-	config.Options.Args.Dir = "/invalid/root"
-	ok := Process(config)
+	conf, _, stdErr := setup()
+	conf.Options.Args.Dir = "/invalid/root"
+	ok := Process(conf)
 
 	assert.False(t, ok)
 	expectedError := NewFileError("/invalid/root", "is not a directory")
@@ -195,10 +196,10 @@ func TestAbsDirectory_Errors(t *testing.T) {
 }
 
 func TestOption_Version(t *testing.T) {
-	config, stdOut, _ := setup()
-	config.Options.ShowVersion = true
-	ok := Process(config)
+	conf, stdOut, _ := setup()
+	conf.Options.ShowVersion = true
+	ok := Process(conf)
 
 	assert.True(t, ok)
-	assert.Equal(t, versionMessage(config.Version)+"\n", stdOut.String())
+	assert.Equal(t, versionMessage(conf.Version)+"\n", stdOut.String())
 }
