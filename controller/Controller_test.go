@@ -5,10 +5,14 @@ import (
 
 	"bytes"
 
-	"github.com/robwhitby/halfpipe-cli/model"
+	"os"
+
+	. "github.com/robwhitby/halfpipe-cli/model"
 	"github.com/spf13/afero"
 	"github.com/stretchr/testify/assert"
 )
+
+const root = "/root/"
 
 func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
@@ -17,46 +21,42 @@ func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	//only 'valid.secret' exists
 	secretChecker := func(s string) bool { return s == "valid.secret" }
 
-	return NewController(afero.NewMemMapFs(), "/root", stdOut, stdErr, secretChecker), stdOut, stdErr
+	ctrl := NewController(afero.NewMemMapFs(), root, stdOut, stdErr, secretChecker)
+	ctrl.FileSystem.Mkdir(root, 0777)
+	return ctrl, stdOut, stdErr
 }
 
 func TestNoManifest(t *testing.T) {
-	ctrl, stdOut, stdErr := setup()
+	ctrl, _, stdErr := setup()
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
-	assert.Empty(t, stdOut.String())
-
-	expectedError := model.NewFileError(manifestFilename, "does not exist")
+	expectedError := NewFileError(manifestFilename, "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestParseError(t *testing.T) {
-	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile(manifestFilename, []byte("^&*(^&*"), 0777)
+	ctrl, _, stdErr := setup()
+	afero.WriteFile(ctrl.FileSystem, root+manifestFilename, []byte("^&*(^&*"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
-	assert.Empty(t, stdOut.String())
-
-	expectedError := model.NewParseError("")
+	expectedError := NewParseError("")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestLintError(t *testing.T) {
-	ctrl, stdOut, stdErr := setup()
-	ctrl.FileSystem.WriteFile(manifestFilename, []byte("foo: bar"), 0777)
+	ctrl, _, stdErr := setup()
+	afero.WriteFile(ctrl.FileSystem, root+manifestFilename, []byte("foo: bar"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
-	assert.Empty(t, stdOut.String())
-
-	expectedError := model.NewMissingField("team")
+	expectedError := NewMissingField("team")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestRequiredFileError(t *testing.T) {
-	ctrl, stdOut, stdErr := setup()
+	ctrl, _, stdErr := setup()
 	yaml := `
 team: foo
 repo: 
@@ -66,18 +66,16 @@ tasks:
   script: ./build.sh
   image: bar
 `
-	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
+	afero.WriteFile(ctrl.FileSystem, root+manifestFilename, []byte(yaml), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
-	assert.Empty(t, stdOut.String())
-
-	expectedError := model.NewFileError("./build.sh", "does not exist")
+	expectedError := NewFileError("./build.sh", "does not exist")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 }
 
 func TestManifestRequiredSecretError(t *testing.T) {
-	ctrl, stdOut, stdErr := setup()
+	ctrl, _, stdErr := setup()
 	yaml := `
 team: foo
 repo: 
@@ -90,17 +88,15 @@ tasks:
     badsecret: ((path.to.key))
     goodsecret: ((valid.secret))
 `
-	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
-	ctrl.FileSystem.WriteFile("build.sh", []byte("x"), 0777)
+	afero.WriteFile(ctrl.FileSystem, root+manifestFilename, []byte(yaml), 0777)
+	afero.WriteFile(ctrl.FileSystem, root+"build.sh", []byte("x"), 0777)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
-	assert.Empty(t, stdOut.String())
-
-	expectedError := model.NewMissingSecret("path.to.key")
+	expectedError := NewMissingSecret("path.to.key")
 	assert.Contains(t, stdErr.String(), expectedError.Error())
 
-	unexpected := model.NewMissingSecret("valid.secret")
+	unexpected := NewMissingSecret("valid.secret")
 	assert.NotContains(t, stdErr.String(), unexpected.Error())
 }
 
@@ -118,11 +114,69 @@ tasks:
   vars:
     secret: ((valid.secret))
 `
-	ctrl.FileSystem.WriteFile(manifestFilename, []byte(yaml), 0777)
-	ctrl.FileSystem.WriteFile("build.sh", []byte("x"), 0777)
+	afero.WriteFile(ctrl.FileSystem, root+manifestFilename, []byte(yaml), 0777)
+	afero.WriteFile(ctrl.FileSystem, "/root/build.sh", []byte("x"), 0777)
 	ok := ctrl.Run()
 
 	assert.True(t, ok)
 	assert.Empty(t, stdErr.String())
 	assert.Contains(t, stdOut.String(), "Good job")
+}
+
+func TestController_ChecksRootDir(t *testing.T) {
+	stdOut := bytes.NewBufferString("")
+	stdErr := bytes.NewBufferString("")
+	secretChecker := func(s string) bool { return false }
+	ctrl := NewController(afero.NewMemMapFs(), "/invalid/root", stdOut, stdErr, secretChecker)
+	ok := ctrl.Run()
+
+	assert.False(t, ok)
+	expectedError := NewFileError("/invalid/root", "is not a directory")
+	assert.Contains(t, stdErr.String(), expectedError.Error())
+}
+
+func TestAbsDirectory_Abs(t *testing.T) {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+	fs.MkdirAll("/some/dir", 0777)
+
+	dir, _ := absDir("/some/dir/", fs)
+	assert.Equal(t, "/some/dir", dir)
+
+	dir, _ = absDir("/some/dir/../dir", fs)
+	assert.Equal(t, "/some/dir", dir)
+}
+
+func TestAbsDirectory_Relative(t *testing.T) {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+	pwd, _ := os.Getwd()
+	fs.MkdirAll(pwd, 0777)
+
+	dir, _ := absDir(".", fs)
+	assert.Equal(t, pwd, dir)
+
+	dir, _ = absDir("", fs)
+	assert.Equal(t, pwd, dir)
+
+	fs.MkdirAll(pwd+"/foo", 0777)
+
+	dir, _ = absDir("foo", fs)
+	assert.Equal(t, pwd+"/foo", dir)
+
+	dir, _ = absDir("./foo/", fs)
+	assert.Equal(t, pwd+"/foo", dir)
+}
+
+func TestAbsDirectory_Errors(t *testing.T) {
+	fs := afero.Afero{Fs: afero.NewMemMapFs()}
+	pwd, _ := os.Getwd()
+	fs.MkdirAll(pwd, 0777)
+
+	fileError := NewFileError("missing", "is not a directory")
+
+	_, err := absDir("missing", fs)
+	assert.Equal(t, fileError, err)
+
+	fs.WriteFile("/file", []byte{}, 0777)
+	_, err = absDir("/file", fs)
+	assert.IsType(t, fileError, err)
 }

@@ -47,7 +47,7 @@ type fileError struct {
 }
 
 func (e fileError) Error() string {
-	return fmt.Sprintf("File '%s' %s", e.Path, e.Reason)
+	return fmt.Sprintf("'%s' %s", e.Path, e.Reason)
 }
 
 func (e fileError) DocumentationPath() string {

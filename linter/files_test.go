@@ -55,7 +55,7 @@ func TestFile_Happy(t *testing.T) {
 }
 
 func TestRequiredFiles_FindAllFiles(t *testing.T) {
-	var manifest = Manifest{
+	manifest := Manifest{
 		Team: "ee",
 		Repo: Repo{Uri: "http://github.com/foo/bar.git"},
 		Tasks: []Task{
@@ -80,4 +80,19 @@ func TestRequiredFiles_FindAllFiles(t *testing.T) {
 	}}
 
 	assert.Equal(t, expected, files)
+}
+
+func TestLintFiles(t *testing.T) {
+	fs := fs()
+	manifest := Manifest{
+		Team: "ee",
+		Repo: Repo{Uri: "http://github.com/foo/bar.git"},
+		Tasks: []Task{Run{
+			Script: "./build1.sh",
+			Image:  "alpine",
+		}},
+	}
+
+	errors := LintFiles(manifest, fs)
+	assert.Equal(t, []error{NewFileError("./build1.sh", "does not exist")}, errors)
 }
