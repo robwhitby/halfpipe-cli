@@ -17,20 +17,21 @@ import (
 const (
 	documentationRootUrl = "http://docs.halfpipe.io"
 	manifestFilename     = ".halfpipe.io"
+	version              = "0.01"
 )
 
 type controller struct {
 	FileSystem    afero.Fs
-	RootDir       string
+	Options       model.Options
 	OutputWriter  io.Writer
 	ErrorWriter   io.Writer
 	SecretChecker model.SecretChecker
 }
 
-func NewController(fileSystem afero.Fs, rootDir string, outWriter, errWriter io.Writer, secretChecker model.SecretChecker) controller {
+func NewController(fileSystem afero.Fs, options model.Options, outWriter, errWriter io.Writer, secretChecker model.SecretChecker) controller {
 	return controller{
 		FileSystem:    fileSystem,
-		RootDir:       rootDir,
+		Options:       options,
 		OutputWriter:  outWriter,
 		ErrorWriter:   errWriter,
 		SecretChecker: secretChecker,
@@ -38,8 +39,14 @@ func NewController(fileSystem afero.Fs, rootDir string, outWriter, errWriter io.
 }
 
 func (c controller) Run() (ok bool) {
-	//check root directory
-	dir, err := absDir(c.RootDir, c.FileSystem)
+	//show version info?
+	if c.Options.ShowVersion {
+		fmt.Fprintln(c.OutputWriter, versionText())
+		return true
+	}
+
+	//get root directory
+	dir, err := absDir(c.Options.Args.Dir, c.FileSystem)
 	if err != nil {
 		fmt.Fprintln(c.ErrorWriter, errorReport(err))
 		return false
@@ -114,4 +121,8 @@ func absDir(dir string, fs afero.Fs) (string, error) {
 		return "", dirError
 	}
 	return abs, nil
+}
+
+func versionText() string {
+	return fmt.Sprintf("halfpipe v%v", version)
 }

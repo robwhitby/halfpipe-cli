@@ -14,6 +14,13 @@ import (
 
 const root = "/root/"
 
+var opts = Options{
+	ShowVersion: false,
+	Args: Args{
+		Dir: root,
+	},
+}
+
 func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
@@ -21,7 +28,7 @@ func setup() (controller, *bytes.Buffer, *bytes.Buffer) {
 	//only 'valid.secret' exists
 	secretChecker := func(s string) bool { return s == "valid.secret" }
 
-	ctrl := NewController(afero.NewMemMapFs(), root, stdOut, stdErr, secretChecker)
+	ctrl := NewController(afero.NewMemMapFs(), opts, stdOut, stdErr, secretChecker)
 	ctrl.FileSystem.Mkdir(root, 0777)
 	return ctrl, stdOut, stdErr
 }
@@ -127,7 +134,9 @@ func TestController_ChecksRootDir(t *testing.T) {
 	stdOut := bytes.NewBufferString("")
 	stdErr := bytes.NewBufferString("")
 	secretChecker := func(s string) bool { return false }
-	ctrl := NewController(afero.NewMemMapFs(), "/invalid/root", stdOut, stdErr, secretChecker)
+	opts := opts
+	opts.Args.Dir = "/invalid/root"
+	ctrl := NewController(afero.NewMemMapFs(), opts, stdOut, stdErr, secretChecker)
 	ok := ctrl.Run()
 
 	assert.False(t, ok)
@@ -179,4 +188,13 @@ func TestAbsDirectory_Errors(t *testing.T) {
 	fs.WriteFile("/file", []byte{}, 0777)
 	_, err = absDir("/file", fs)
 	assert.IsType(t, fileError, err)
+}
+
+func TestOption_Version(t *testing.T) {
+	ctrl, stdOut, _ := setup()
+	ctrl.Options.ShowVersion = true
+	ok := ctrl.Run()
+
+	assert.True(t, ok)
+	assert.Equal(t, versionText()+"\n", stdOut.String())
 }
